@@ -1,16 +1,14 @@
-import { supabase } from '../supabaseClient.js'; // Ajusta la ruta según dónde tengas tu cliente
-
-const LS_KEY = 'trivia_favoritos'; // ya no se usa localStorage, pero lo dejo por si quieres
+import { supabase } from '../supabaseClient.js'; // Ajusta la ruta si es necesario
 
 export async function mostrarFavoritos(container, user) {
   container.innerHTML = `
     <div id="favoritos">
-      <h2>Favoritos</h2>
       <form id="form-favoritos">
         <input type="text" id="pregunta-texto" placeholder="Texto de la pregunta" required />
         <input type="text" id="respuesta-correcta" placeholder="Respuesta correcta" required />
         <input type="text" id="categoria" placeholder="Categoría" required />
         <button type="submit">Agregar Favorito</button>
+        <button type="button" id="cancelar-edicion" style="display:none;">Cancelar</button>
       </form>
       <input type="text" id="buscador-favoritos" placeholder="Buscar favoritos..." />
       <div id="favoritos-lista"></div>
@@ -20,6 +18,10 @@ export async function mostrarFavoritos(container, user) {
   const form = document.getElementById('form-favoritos');
   const buscador = document.getElementById('buscador-favoritos');
   const lista = document.getElementById('favoritos-lista');
+  const cancelarBtn = document.getElementById('cancelar-edicion');
+
+  let modoEdicion = false;
+  let idEditando = null;
 
   let favoritos = await cargarFavoritos();
 
@@ -124,44 +126,53 @@ export async function mostrarFavoritos(container, user) {
         document.getElementById('pregunta-texto').value = fav.pregunta;
         document.getElementById('respuesta-correcta').value = fav.respuesta;
         document.getElementById('categoria').value = fav.categoria;
-        form.querySelector('button[type="submit"]').textContent = 'Actualizar Favorito';
 
-        form.onsubmit = async (ev) => {
-          ev.preventDefault();
-          const actualizado = {
-            pregunta: document.getElementById('pregunta-texto').value,
-            respuesta: document.getElementById('respuesta-correcta').value,
-            categoria: document.getElementById('categoria').value
-          };
-          const res = await actualizarFavorito(fav.id, actualizado);
-          if (res) {
-            favoritos[idx] = res;
-            mostrarFavoritosLista(favoritos);
-            form.reset();
-            form.querySelector('button[type="submit"]').textContent = 'Agregar Favorito';
-            form.onsubmit = onFormSubmit;
-          }
-        };
+        modoEdicion = true;
+        idEditando = fav.id;
+
+        form.querySelector('button[type="submit"]').textContent = 'Actualizar Favorito';
+        cancelarBtn.style.display = 'inline';
       });
     });
   }
 
-  async function onFormSubmit(e) {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-    const nueva = {
+    const nuevoFav = {
       pregunta: document.getElementById('pregunta-texto').value,
       respuesta: document.getElementById('respuesta-correcta').value,
       categoria: document.getElementById('categoria').value
     };
-    const res = await guardarFavorito(nueva);
-    if (res) {
-      favoritos.unshift(res);
-      mostrarFavoritosLista(favoritos);
-      form.reset();
-    }
-  }
 
-  form.onsubmit = onFormSubmit;
+    if (modoEdicion && idEditando) {
+      const res = await actualizarFavorito(idEditando, nuevoFav);
+      if (res) {
+        const idx = favoritos.findIndex(f => f.id === idEditando);
+        favoritos[idx] = res;
+        mostrarFavoritosLista(favoritos);
+        reiniciarFormulario();
+      }
+    } else {
+      const res = await guardarFavorito(nuevoFav);
+      if (res) {
+        favoritos.unshift(res);
+        mostrarFavoritosLista(favoritos);
+        form.reset();
+      }
+    }
+  });
+
+  cancelarBtn.addEventListener('click', () => {
+    reiniciarFormulario();
+  });
+
+  function reiniciarFormulario() {
+    modoEdicion = false;
+    idEditando = null;
+    form.reset();
+    form.querySelector('button[type="submit"]').textContent = 'Agregar Favorito';
+    cancelarBtn.style.display = 'none';
+  }
 
   buscador.addEventListener('input', () => {
     const filtro = buscador.value.toLowerCase();

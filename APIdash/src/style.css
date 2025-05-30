@@ -1,7 +1,7 @@
 /* Variables CSS para consistencia y mantenimiento */
 :root {
   --secondary-color: #1d2422a6;
-  --success-color: #0eccbc;
+  --success-color: #13867d;
   --error-color: #cc3333;
   --text-light: #fff;
   --bg-light: #f8f9fa;
@@ -44,7 +44,7 @@ nav.tabs {
 }
 
 nav.tabs button {
-  background:  rgba(64, 202, 168, 0.37);
+  background:  rgba(7, 100, 77, 0.589);
   border: none;
   color: var(--text-light);
   font-size: clamp(13px, 2.7vw, 15px);
